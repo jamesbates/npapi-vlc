@@ -665,8 +665,8 @@ void Private_Shutdown(void)
 NPError    Private_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* argn[], char* argv[], NPSavedData* saved)
 {
     EnterCodeResource();
-    NPError ret = NPP_New(pluginType, instance, mode, argc, argn, argv, saved);
     PLUGINDEBUGSTR("\pNew;g;");
+        NPError ret = NPP_New(pluginType, instance, mode, argc, argn, argv, saved);
     ExitCodeResource();
     return ret;
 }
@@ -903,6 +903,9 @@ typedef int main_return_t;
 typedef NPError mainReturnType;
 #endif
 
+
+typedef void      (* NP_LOADDS NPP_ShutdownProcPtr)(void);
+
 #if (((NP_VERSION_MAJOR << 8) + NP_VERSION_MINOR) < 20)
 typedef NPP_ShutdownUPP unloadupp_t;
 #else
@@ -1102,8 +1105,11 @@ NPError NP_Initialize(NPNetscapeFuncs* nsTable)
 
     /* validate input parameters */
 
-    if( NULL == nsTable  )
+    if( NULL == nsTable  ) {
+
+    	PLUGINDEBUGSTR("\pNP_Initialize error: NPERR_INVALID_FUNCTABLE_ERROR: table is null");
         return NPERR_INVALID_FUNCTABLE_ERROR;
+    }
 
     /*
      * Check the major version passed in Netscape's function table.
@@ -1114,11 +1120,21 @@ NPError NP_Initialize(NPNetscapeFuncs* nsTable)
      *
      */
 
-    if ((nsTable->version >> 8) > NP_VERSION_MAJOR)
-        return NPERR_INCOMPATIBLE_VERSION_ERROR;
+    if ((nsTable->version >> 8) > NP_VERSION_MAJOR) {
 
-    if (nsTable->size < sizeof(NPNetscapeFuncs))
+    	PLUGINDEBUGSTR("\pNP_Initialize error: NPERR_INCOMPATIBLE_VERSION_ERROR");
+        return NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+
+
+    // This check is too simplisitic: some browsers (e.g. Safari) update the NPAPI less frequently, and so
+    // provide a table containing all netspace functions we are interested, but not necessarily all defined
+    // in the newest version of the npapi against which this plugin is compiled.
+    /*if (nsTable->size < sizeof(NPNetscapeFuncs)) {
+
+    	PLUGINDEBUGSTR("\pNP_Initialize error: NPERR_INVALID_FUNCTABLE_ERROR: table too small");
         return NPERR_INVALID_FUNCTABLE_ERROR;
+    }*/
 
     int navMinorVers = nsTable->version & 0xFF;
 
