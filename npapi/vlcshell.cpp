@@ -342,8 +342,10 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
     /* retrieve current window */
     NPWindow& curr_window = p_plugin->getWindow();
 
-    if (window && window->window) {
+    if (window/* && window->window */) {
+    	::DebugStr((const unsigned char*)"\pvlcshell: received window object from browser");
         if (!curr_window.window) {
+        	::DebugStr((const unsigned char*)"\pvlcshell: no current window");
             /* we've just been created */
             p_plugin->setWindow(*window);
             p_plugin->create_windows();
@@ -371,11 +373,13 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
             p_plugin->update_controls();
         } else {
             if (window->window == curr_window.window) {
+                ::DebugStr((const unsigned char*)"\pAlready have current window, and new window is the same");
                 /* resize / move notification */
                 p_plugin->setWindow(*window);
                 p_plugin->resize_windows();
             } else {
                 /* plugin parent window was changed, notify plugin about it */
+            	::DebugStr((const unsigned char*)"\pAlready have current window, but new window is different");
                 p_plugin->destroy_windows();
                 p_plugin->setWindow(*window);
                 p_plugin->create_windows();
@@ -385,6 +389,7 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
     } else {
         /* NOTE: on Windows, Opera does not call NPP_SetWindow
          * on window destruction. */
+    	::DebugStr((const unsigned char*)"\pvlcshell: received no window object from browser");
         if (curr_window.window) {
             /* we've been destroyed */
             p_plugin->destroy_windows();

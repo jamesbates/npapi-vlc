@@ -26,6 +26,8 @@
 
 #include "vlcplugin_mac.h"
 
+#include <npapi.h>
+
 VlcPluginMac::VlcPluginMac(NPP instance, NPuint16_t mode) :
     VlcPluginBase(instance, mode)
 {
@@ -76,8 +78,13 @@ bool VlcPluginMac::resize_windows()
      * relative to GrafPort window origin is set relative to document,
      * which of little use for drawing
      */
+#ifndef NP_NO_QUICKDRAW
     view.top     = ((NP_Port*) (npwindow.window))->porty;
     view.left    = ((NP_Port*) (npwindow.window))->portx;
+#else
+    view.top	= 0;
+    view.left	= 0;
+#endif
     view.bottom  = npwindow.height+view.top;
     view.right   = npwindow.width+view.left;
 
@@ -96,5 +103,5 @@ bool VlcPluginMac::resize_windows()
 
 bool VlcPluginMac::destroy_windows()
 {
-    window.window = NULL;
+    npwindow.window = NULL;
 }
