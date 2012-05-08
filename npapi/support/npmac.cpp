@@ -666,7 +666,42 @@ NPError    Private_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16
 {
     EnterCodeResource();
     PLUGINDEBUGSTR("\pNew;g;");
-        NPError ret = NPP_New(pluginType, instance, mode, argc, argn, argv, saved);
+
+    /*
+     *  We should negotiate and setup uniform event & drawing models, so the 32- and 64-bit plugins behave
+     * identically
+     */
+    NPBool supportsCoreGraphics = FALSE;
+    NPError err = NPN_GetValue(instance, NPNVsupportsCoreGraphicsBool, &supportsCoreGraphics);
+    if (err != NPERR_NO_ERROR || !supportsCoreGraphics) {
+
+    	PLUGINDEBUGSTR("\pNew: browser doesn't support CoreGraphics drawing model;g;");
+        return NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+
+    err = NPN_SetValue(instance, NPPVpluginDrawingModel, (void*)NPDrawingModelCoreGraphics);
+    if (err != NPERR_NO_ERROR) {
+
+    	PLUGINDEBUGSTR("\pNew: couldn't activate CoreGraphics drawing model;g;");
+    	return NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+
+    NPBool supportsCocoaEvents = FALSE;
+    err = NPN_GetValue(instance, NPNVsupportsCocoaBool, &supportsCocoaEvents);
+    if (err != NPERR_NO_ERROR || !supportsCocoaEvents) {
+
+		PLUGINDEBUGSTR("\pNew: browser doesn't support Cocoa event model;g;");
+		return NPERR_INCOMPATIBLE_VERSION_ERROR;
+	}
+
+    err = NPN_SetValue(instance, NPPVpluginEventModel, (void*)NPEventModelCocoa);
+    if (err != NPERR_NO_ERROR) {
+
+    	PLUGINDEBUGSTR("\pNew: couldn't activate Cocoa event model;g;");
+    	return NPERR_INCOMPATIBLE_VERSION_ERROR;
+    }
+
+    NPError ret = NPP_New(pluginType, instance, mode, argc, argn, argv, saved);
     ExitCodeResource();
     return ret;
 }
