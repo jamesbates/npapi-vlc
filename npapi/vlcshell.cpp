@@ -138,7 +138,7 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
         return false;
     }
 
-#ifndef __x86_64__
+#if 0
     EventRecord *myEvent = (EventRecord*)event;
 
     switch( myEvent->what )
@@ -230,7 +230,9 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
         default:
             ;
     }
-#endif // __x86_64__
+#else // __x86_64__
+// TODO: implement Cocoa event model
+#endif
     return false;
 }
 #endif /* XP_MACOSX */
@@ -395,7 +397,6 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
             p_plugin->destroy_windows();
         }
     }
-
     return NPERR_NO_ERROR;
 }
 
