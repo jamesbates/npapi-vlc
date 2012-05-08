@@ -78,13 +78,8 @@ bool VlcPluginMac::resize_windows()
      * relative to GrafPort window origin is set relative to document,
      * which of little use for drawing
      */
-#ifndef NP_NO_QUICKDRAW
-    view.top     = ((NP_Port*) (npwindow.window))->porty;
-    view.left    = ((NP_Port*) (npwindow.window))->portx;
-#else
-    view.top	= 0;
-    view.left	= 0;
-#endif
+    view.top	= 0; // ((NP_Port*) (npwindow.window))->porty;
+    view.left	= 0; // ((NP_Port*) (npwindow.window))->portx;
     view.bottom  = npwindow.height+view.top;
     view.right   = npwindow.width+view.left;
 
