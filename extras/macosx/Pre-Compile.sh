@@ -259,7 +259,7 @@ for module in `find ${libvlc_dir}/lib/vlc/plugins -name 'lib*_plugin.dylib' -pri
             vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
 done
 # Don't forget modules built inside npapi-vlc
-for module in `find ${src_dir}/macosx_vout/${prefix} -name 'lib*_plugin.dylib' -print` ; do
+for module in `find ${src_dir}/macosx/plugins/${prefix} -name 'lib*_plugin.dylib' -print` ; do
     vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
 done
 

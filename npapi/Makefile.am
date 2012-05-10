@@ -29,7 +29,7 @@ EXTRA_libvlcplugin_la_SOURCES = \
 	support/npwin.cpp support/npmac.cpp support/npunix.cpp
 
 libvlcplugin_la_DEPENDENCIES =
-libvlcplugin_la_LIBADD = $(LIBVLC_LIBS)
+libvlcplugin_la_LIBADD = $(LIBVLC_LIBS) 
 libvlcplugin_la_LDFLAGS = \
 	-module -avoid-version \
 	-no-undefined
@@ -99,11 +99,11 @@ else
 # MacOS X
 # Mac OS plugins need .r files that will be processed into rsrc files
 #
-SUBDIRS += macosx_vout
+SUBDIRS += macosx
 
 lib_LTLIBRARIES = npvlc.la
 
-AM_CPPFLAGS += -I. -I$(top_builddir) -c \
+AM_CPPFLAGS += -I$(srcdir). -I$(top_srcddir) -c \
 	-F/System/Library/Frameworks/CoreFoundation.framework \
 	-I/Developer/Headers/FlatCarbon -fno-common -fpascal-strings \
 	-Wmost -Wno-four-char-constants -Wno-unknown-pragmas \
@@ -112,17 +112,17 @@ AM_CPPFLAGS += -I. -I$(top_builddir) -c \
 
 SOURCES_support = support/npmac.cpp \
                   vlcplugin_mac.cpp \
-                  vlcplugin_mac.h \
-                  vlcplugin_layer.m \
-                  vlcplugin_layer.h
+                  vlcplugin_mac.h
                   
 libvlcplugin_la_LDFLAGS += \
 	-bundle -Wl,-read_only_relocs -Wl,suppress \
 	-Wl,-headerpad_max_install_names \
 	-Wl,-framework,Cocoa -Wl,-framework,System \
 	-Wl,-framework,OpenGL -Wl,-framework,Quartz \
-	-Wl,-framework,Foundation -lobjc \	
+	-Wl,-framework,Foundation -lobjc \
 	-shrext .dylib
+
+libvlcplugin_la_LIBADD += macosx/libmacosx.la
 
 noinst_DATA = npvlc.rsrc VLC\ Plugin.plugin
 MOSTLYCLEANFILES += npvlc.rsrc

@@ -25,7 +25,7 @@
  *****************************************************************************/
 
 #include "vlcplugin_mac.h"
-#include "vlcplugin_layer.h"
+#include "macosx/vlcplugin_layer.h"
 #include <npapi.h>
 
 VlcPluginMac::VlcPluginMac(NPP instance, NPuint16_t mode) :

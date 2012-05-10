@@ -39,7 +39,8 @@
 #include "vlcshell.h"
 
 #ifdef XP_MACOSX
-#include "vlcplugin_layer.h"
+#include "macosx/vlcplugin_layer.h"
+#include "macosx/misc.h"
 #endif
 
 

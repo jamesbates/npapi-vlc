@@ -38,9 +38,3 @@ void setVlcPluginLayerBounds(void *vlcPluginLayer, CGRect rect) {
 
     ((VlcPluginLayer *)vlcPluginLayer).bounds = rect;
 }
-
-float getDoubleClickThreshold() {
-
-       NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-       return [defaults floatForKey:@"com.apple.mouse.doubleClickThreshold"];
-}

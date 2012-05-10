@@ -279,7 +279,8 @@ AC_CONFIG_FILES([
   Makefile
   share/Makefile
   npapi/Makefile
-  npapi/macosx_vout/Makefile
+  npapi/macosx/Makefile
+  npapi/macosx/plugins/Makefile
   activex/Makefile
   npapi/install.js
   npapi/install.rdf
