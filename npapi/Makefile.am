@@ -2,6 +2,7 @@
 # Building the Mozilla plugin
 ###############################################################################
 
+SUBDIRS =
 EXTRA_DIST = npvlc_rc.rc.in npvlc.dll.manifest
 MOSTLYCLEANFILES =
 CLEANFILES = $(BUILT_SOURCES)
@@ -98,6 +99,8 @@ else
 # MacOS X
 # Mac OS plugins need .r files that will be processed into rsrc files
 #
+SUBDIRS += macosx_vout
+
 lib_LTLIBRARIES = npvlc.la
 
 AM_CPPFLAGS += -I. -I$(top_builddir) -c \
@@ -109,11 +112,16 @@ AM_CPPFLAGS += -I. -I$(top_builddir) -c \
 
 SOURCES_support = support/npmac.cpp \
                   vlcplugin_mac.cpp \
-                  vlcplugin_mac.h
+                  vlcplugin_mac.h \
+                  vlcplugin_layer.m \
+                  vlcplugin_layer.h
+                  
 libvlcplugin_la_LDFLAGS += \
 	-bundle -Wl,-read_only_relocs -Wl,suppress \
 	-Wl,-headerpad_max_install_names \
-	-Wl,-framework,Carbon -Wl,-framework,System \
+	-Wl,-framework,Cocoa -Wl,-framework,System \
+	-Wl,-framework,OpenGL -Wl,-framework,Quartz \
+	-Wl,-framework,Foundation -lobjc \	
 	-shrext .dylib
 
 noinst_DATA = npvlc.rsrc VLC\ Plugin.plugin
@@ -160,3 +168,4 @@ VLC\ Plugin.plugin: npvlc.rsrc $(lib_LTLIBRARIES)
 #	fi
 
 endif # Mac
+

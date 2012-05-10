@@ -116,7 +116,7 @@
 // Define PLUGIN_TRACE to 1 to have the wrapper functions emit
 // DebugStr messages whenever they are called.
 //
-#define PLUGIN_TRACE 0
+#define PLUGIN_TRACE 1
 
 #if PLUGIN_TRACE
 #define PLUGINDEBUGSTR(msg)     ::DebugStr(msg)
@@ -668,21 +668,21 @@ NPError    Private_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16
     PLUGINDEBUGSTR("\pNew;g;");
 
     /*
-     *  We should negotiate and setup uniform event & drawing models, so the 32- and 64-bit plugins behave
-     * identically
+     * Plugin will use the CoreAnimation drawing model, in both 32- and 64-bit. InvalidatingCoreAnimation is available in
+     * some browsers, but appears buggy still in some, so we don't use it (yet).
      */
-    NPBool supportsCoreGraphics = FALSE;
-    NPError err = NPN_GetValue(instance, NPNVsupportsCoreGraphicsBool, &supportsCoreGraphics);
-    if (err != NPERR_NO_ERROR || !supportsCoreGraphics) {
+    NPBool supportsCoreAnimation = FALSE;
+    NPError err = NPN_GetValue(instance, NPNVsupportsCoreAnimationBool, &supportsCoreAnimation);
+    if (err != NPERR_NO_ERROR || !supportsCoreAnimation) {
 
-    	PLUGINDEBUGSTR("\pNew: browser doesn't support CoreGraphics drawing model;g;");
+    	PLUGINDEBUGSTR("\pNew: browser doesn't support CoreAnimation drawing model;g;");
         return NPERR_INCOMPATIBLE_VERSION_ERROR;
     }
 
-    err = NPN_SetValue(instance, NPPVpluginDrawingModel, (void*)NPDrawingModelCoreGraphics);
+    err = NPN_SetValue(instance, NPPVpluginDrawingModel, (void*)NPDrawingModelCoreAnimation);
     if (err != NPERR_NO_ERROR) {
 
-    	PLUGINDEBUGSTR("\pNew: couldn't activate CoreGraphics drawing model;g;");
+    	PLUGINDEBUGSTR("\pNew: couldn't activate CoreAnimation drawing model;g;");
     	return NPERR_INCOMPATIBLE_VERSION_ERROR;
     }
 
@@ -700,6 +700,7 @@ NPError    Private_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16
     	PLUGINDEBUGSTR("\pNew: couldn't activate Cocoa event model;g;");
     	return NPERR_INCOMPATIBLE_VERSION_ERROR;
     }
+	PLUGINDEBUGSTR("\pNew: Cocoa event model succesfully negotiated.;g;");
 
     NPError ret = NPP_New(pluginType, instance, mode, argc, argn, argv, saved);
     ExitCodeResource();

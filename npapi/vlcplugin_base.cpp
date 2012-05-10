@@ -401,14 +401,12 @@ NPError VlcPluginBase::init(int argc, char* const argn[], char* const argv[])
 
 #ifndef NDEBUG
     ppsz_argv[ppsz_argc++] = "--no-plugins-cache";
-#else
-#   error "Debugging disabled"
 #endif
 
     /* locate VLC module path */
 #ifdef XP_MACOSX
 //    ppsz_argv[ppsz_argc++] = "--plugin-path=/Library/Internet\\ Plug-Ins/VLC\\ Plugin.plugin/Contents/MacOS/plugins";
-    ppsz_argv[ppsz_argc++] = "--vout=vout_macosx";
+    ppsz_argv[ppsz_argc++] = "--vout=caopengl_vout";
 #elif defined(XP_WIN)
     HKEY h_key;
     DWORD i_type, i_data = MAX_PATH + 1;
@@ -570,7 +568,6 @@ VlcPluginBase::~VlcPluginBase()
         libvlc_media_list_release( libvlc_media_list );
     if( libvlc_instance )
         libvlc_release( libvlc_instance );
-
     _instances.erase(this);
 }
 

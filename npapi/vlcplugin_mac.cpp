@@ -25,21 +25,38 @@
  *****************************************************************************/
 
 #include "vlcplugin_mac.h"
-
+#include "vlcplugin_layer.h"
 #include <npapi.h>
 
 VlcPluginMac::VlcPluginMac(NPP instance, NPuint16_t mode) :
-    VlcPluginBase(instance, mode)
+    VlcPluginBase(instance, mode),
+    vlcplugin_layer(NULL)
 {
+}
+
+NPError VlcPluginMac::init(int argc, char* const argn[], char* const argv[]) {
+
+	NPError result = VlcPluginBase::init(argc, argn, argv);
+
+	if (!result) {
+		vlcplugin_layer = createVlcPluginLayer();
+
+		result = (vlcplugin_layer ? NPERR_NO_ERROR : NPERR_GENERIC_ERROR);
+	}
+	return result;
 }
 
 VlcPluginMac::~VlcPluginMac()
 {
+    if (vlcplugin_layer) {
+
+    	destroyVlcPluginLayer(vlcplugin_layer);
+    }
 }
 
 void VlcPluginMac::set_player_window()
 {
-    // XXX FIXME insert appropriate call here
+	libvlc_media_player_set_nsobject(libvlc_media_player, vlcplugin_layer);
 }
 
 void VlcPluginMac::toggle_fullscreen()
@@ -71,6 +88,10 @@ bool VlcPluginMac::create_windows()
 
 bool VlcPluginMac::resize_windows()
 {
+	setVlcPluginLayerBounds(vlcplugin_layer, CGRectMake(0.0, 0.0, npwindow.width, npwindow.height));
+
+
+
     /* as MacOS X video output is windowless, set viewport */
     libvlc_rectangle_t view, clip;
 
@@ -94,9 +115,11 @@ bool VlcPluginMac::resize_windows()
 #else
 #warning disabled code
 #endif
+
+    return true;
 }
 
 bool VlcPluginMac::destroy_windows()
 {
-    npwindow.window = NULL;
+	return true;
 }

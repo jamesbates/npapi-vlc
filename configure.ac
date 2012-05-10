@@ -68,11 +68,15 @@ dnl
 case "${host_os}" in
   darwin*)
     SYS=darwin
-
+	AC_PROG_OBJC
+	
     dnl Force gcc "-arch" flag
     ARCH_flag=""
     case "${host}" in
       i386*)
+        ARCH_flag="-arch i386"
+      ;;
+      i686*)
         ARCH_flag="-arch i386"
       ;;
       ppc64*)
@@ -88,6 +92,7 @@ case "${host_os}" in
 
     CFLAGS="${CFLAGS} -D_INTL_REDIRECT_MACROS ${ARCH_flag}"
     CXXFLAGS="${CXXFLAGS} -D_INTL_REDIRECT_MACROS ${ARCH_flag}"
+    OBJCFLAGS="${OBJCFLAGS} -D_INTL_REDIRECT_MACROS ${ARCH_flag}"
     CPPFLAGS="${CPPFLAGS} ${ARCH_flag}"
     LDFLAGS="${LDFLAGS} -Wl,-headerpad_max_install_names ${ARCH_flag}"
     ;;
@@ -147,10 +152,10 @@ glibc run-time.])
 dnl
 dnl libraries checks
 AC_PATH_XTRA
-PKG_CHECK_MODULES([LIBVLC], [libvlc >= 1.1.0], [
+PKG_CHECK_MODULES([LIBVLC], [libvlc >= 2.1.0], [
     LIBVLC_PREFIX=`pkg-config --variable=prefix libvlc`
     AC_SUBST(LIBVLC_PREFIX)])
-
+PKG_CHECK_MODULES([VLC_PLUGIN], [vlc-plugin >= 2.1.0])
 
 dnl
 dnl ActiveX
@@ -274,6 +279,7 @@ AC_CONFIG_FILES([
   Makefile
   share/Makefile
   npapi/Makefile
+  npapi/macosx_vout/Makefile
   activex/Makefile
   npapi/install.js
   npapi/install.rdf

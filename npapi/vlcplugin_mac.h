@@ -29,14 +29,14 @@
 
 #include "vlcplugin_base.h"
 
-#include <Quickdraw.h>
+//#include <Quickdraw.h>
 
 class VlcPluginMac : public VlcPluginBase
 {
 public:
     VlcPluginMac(NPP, NPuint16_t);
     virtual ~VlcPluginMac();
-
+    virtual NPError		init(int argc, char* const argn[], char* const argv[]);
     int                 setSize(unsigned width, unsigned height);
 
     void toggle_fullscreen();
@@ -51,12 +51,15 @@ public:
     bool get_toolbar_visible()  { return false; }
     void update_controls()      {/* STUB */}
     void popup_menu()           {/* STUB */}
+    void *layer() { return vlcplugin_layer; }
 private:
     void set_player_window();
 
     unsigned int     i_width, i_height;
 
     int i_last_position;
+
+    void *vlcplugin_layer;
 };
 
 #endif /* __VLCPLUGIN_MAC_H__ */

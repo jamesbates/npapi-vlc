@@ -198,7 +198,7 @@ public:
     VlcPluginBase( NPP, NPuint16_t );
     virtual ~VlcPluginBase();
 
-    NPError             init(int argc, char* const argn[], char* const argv[]);
+    virtual	NPError		init(int argc, char* const argn[], char* const argv[]);
     libvlc_instance_t*  getVLC()
                             { return libvlc_instance; };
     libvlc_media_player_t* getMD()

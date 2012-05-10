@@ -33,9 +33,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "vlcplugin.h"
 #include "vlcshell.h"
+
+#ifdef XP_MACOSX
+#include "vlcplugin_layer.h"
+#endif
 
 
 /******************************************************************************
@@ -103,7 +108,11 @@ NPError NPP_GetValue( NPP instance, NPPVariable variable, void *value )
             }
             break;
         }
-
+#ifdef XP_MACOSX
+        case NPPVpluginCoreAnimationLayer:
+        	*(void **)value = (reinterpret_cast<VlcPluginMac *>(p_plugin))->layer();
+        	return NPERR_NO_ERROR;
+#endif
         default:
             ;
     }
@@ -126,7 +135,7 @@ NPError NPP_SetValue( NPP, NPNVariable, void * )
 #ifdef XP_MACOSX
 int16_t NPP_HandleEvent( NPP instance, void * event )
 {
-    static UInt32 lastMouseUp = 0;
+    static time_t lastMouseUp = 0;
     if( instance == NULL )
     {
         return false;
@@ -138,32 +147,32 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
         return false;
     }
 
-#if 0
-    EventRecord *myEvent = (EventRecord*)event;
+    NPCocoaEvent *myEvent = (NPCocoaEvent *)event;
 
-    switch( myEvent->what )
+    switch( myEvent->type )
     {
-        case nullEvent:
-            return true;
-        case mouseDown:
+        case NPCocoaEventMouseDown:
         {
-            if( (myEvent->when - lastMouseUp) < GetDblTime() )
+            if( difftime(time(NULL), lastMouseUp) < (100 * getDoubleClickThreshold()) )
             {
                 /* double click */
                 p_plugin->toggle_fullscreen();
             }
             return true;
         }
-        case mouseUp:
-            lastMouseUp = myEvent->when;
+        case NPCocoaEventMouseUp:
+            lastMouseUp = time(NULL);
             return true;
-        case keyUp:
-        case keyDown:
-        case autoKey:
+        case NPCocoaEventKeyUp:
+        case NPCocoaEventKeyDown:
+/*        case autoKey:
             return true;
-        case updateEvt:
+*/
+#warning disabled code
+        case NPCocoaEventDrawRect:
         {
-            const NPWindow& npwindow = p_plugin->getWindow();
+#warning disabled code
+/*        	const NPWindow& npwindow = p_plugin->getWindow();
             if( npwindow.window )
             {
                 bool hasVout = false;
@@ -188,12 +197,12 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
 
                 if( ! hasVout )
                 {
-                    /* draw the text from get_bg_text() */
+                    // draw the text from get_bg_text()
                     ForeColor(blackColor);
                     PenMode( patCopy );
 
-                    /* seems that firefox forgets to set the following
-                     * on occasion (reload) */
+                    // seems that firefox forgets to set the following
+                    // on occasion (reload)
                     SetOrigin(((NP_Port *)npwindow.window)->portx,
                               ((NP_Port *)npwindow.window)->porty);
 
@@ -209,30 +218,17 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
                     if( !p_plugin->get_bg_text().empty() )
                         DrawText( p_plugin->get_bg_text().c_str(), 0, p_plugin->get_bg_text().length() );
                 }
-            }
+            }*/
             return true;
         }
-        case activateEvt:
-            return false;
-        case NPEventType_GetFocusEvent:
-        case NPEventType_LoseFocusEvent:
-            return true;
-        case NPEventType_AdjustCursorEvent:
-            return false;
-        case NPEventType_MenuCommandEvent:
-            return false;
-        case NPEventType_ClippingChangedEvent:
-            return false;
-        case NPEventType_ScrollingBeginsEvent:
-            return true;
-        case NPEventType_ScrollingEndsEvent:
+
+        case NPCocoaEventFocusChanged:
+        case NPCocoaEventWindowFocusChanged:
+        case NPCocoaEventScrollWheel:
             return true;
         default:
             ;
     }
-#else // __x86_64__
-// TODO: implement Cocoa event model
-#endif
     return false;
 }
 #endif /* XP_MACOSX */
@@ -344,10 +340,13 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
     /* retrieve current window */
     NPWindow& curr_window = p_plugin->getWindow();
 
-    if (window/* && window->window */) {
-    	::DebugStr((const unsigned char*)"\pvlcshell: received window object from browser");
+    if (window
+/* In MacOS X's CoreAnimation drawing model, window->window is always NULL */
+#ifndef XP_MACOSX
+    	       && window->window
+#endif
+    	                         ) {
         if (!curr_window.window) {
-        	::DebugStr((const unsigned char*)"\pvlcshell: no current window");
             /* we've just been created */
             p_plugin->setWindow(*window);
             p_plugin->create_windows();
@@ -363,7 +362,11 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
                 {
                     if( p_plugin->playlist_add( p_plugin->psz_target ) != -1 )
                     {
-                        if( p_plugin->get_autoplay() )
+                    	/* On the mac's CoreAnimation drawing model, NPWindow.window is always NULL,
+                    	 * so we'll always end up here, even if we're already playing. Therefore
+                    	 * check that we aren't before auto-activating. This is harmless on other platforms.
+                    	 */
+                        if( !p_plugin->playlist_isplaying() &&  p_plugin->get_autoplay() )
                         {
                             p_plugin->playlist_play();
                         }
@@ -375,13 +378,11 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
             p_plugin->update_controls();
         } else {
             if (window->window == curr_window.window) {
-                ::DebugStr((const unsigned char*)"\pAlready have current window, and new window is the same");
                 /* resize / move notification */
                 p_plugin->setWindow(*window);
                 p_plugin->resize_windows();
             } else {
                 /* plugin parent window was changed, notify plugin about it */
-            	::DebugStr((const unsigned char*)"\pAlready have current window, but new window is different");
                 p_plugin->destroy_windows();
                 p_plugin->setWindow(*window);
                 p_plugin->create_windows();
@@ -391,7 +392,6 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
     } else {
         /* NOTE: on Windows, Opera does not call NPP_SetWindow
          * on window destruction. */
-    	::DebugStr((const unsigned char*)"\pvlcshell: received no window object from browser");
         if (curr_window.window) {
             /* we've been destroyed */
             p_plugin->destroy_windows();

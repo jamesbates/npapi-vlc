@@ -2,10 +2,9 @@
 #
 # Pre-Compile.sh
 #
-# Script that install libvlc and its modules inside VLCKit.
+# Script that builds together the VLC Plugin application bundle.
 #
-# This is for some creepy reasons also used by legacy VLC.app or
-# the moz plugin.
+# Almost entirely copied and adapted from similar script in main VLC tree.
 
 #
 # We are building VLC.app or the moz plugin
@@ -253,10 +252,15 @@ fi
 echo "Building plugins folder..."
 # Figure out what plugins are available to install
 for module in `find ${libvlc_dir}/lib/vlc/plugins -name 'lib*_plugin.dylib' -print` ; do
-    # Check to see that the reported module actually exists
-    #if test -f ${module}; then
-        vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
-    #fi
+    # Check to see that the reported module actually exists, and is needed in the VLC Plugin
+    [ "`basename ${module}`" = "libmacosx_plugin.dylib" ] || \
+        [ "`basename ${module}`" = "libmacosx_dialog_provider_plugin.dylib" ] || \
+        [ "`basename ${module}`" = "libgrowl_plugin.dylib" ] || \
+            vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
+done
+# Don't forget modules built inside npapi-vlc
+for module in `find ${src_dir}/macosx_vout/${prefix} -name 'lib*_plugin.dylib' -print` ; do
+    vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
 done
 
 ##########################
