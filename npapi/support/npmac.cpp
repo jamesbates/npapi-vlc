@@ -116,7 +116,7 @@
 // Define PLUGIN_TRACE to 1 to have the wrapper functions emit
 // DebugStr messages whenever they are called.
 //
-#define PLUGIN_TRACE 1
+#define PLUGIN_TRACE 0
 
 #if PLUGIN_TRACE
 #define PLUGINDEBUGSTR(msg)     ::DebugStr(msg)

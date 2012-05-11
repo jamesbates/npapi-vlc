@@ -22,10 +22,10 @@ AM_LDFLAGS = -avoid-version -module \
 	-export-symbols-regex ^vlc_entry \
 	-shrext .dylib \
 	-no-undefined \
-    $(VLC_PLUGIN_LIBS) -lobjc
+    $(VLC_PLUGIN_LIBS) -Wl,-framework,OpenGL -Wl,-framework,Cocoa
 
 
 
 lib_LTLIBRARIES=libcaopengl_vout_plugin.la
 
-libcaopengl_vout_plugin_la_SOURCES=caopengl_vout.m
+libcaopengl_vout_plugin_la_SOURCES=caopengl_vout.m caopengl_vout.h caopengl.h caopengl.c

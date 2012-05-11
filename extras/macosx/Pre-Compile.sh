@@ -255,6 +255,7 @@ for module in `find ${libvlc_dir}/lib/vlc/plugins -name 'lib*_plugin.dylib' -pri
     # Check to see that the reported module actually exists, and is needed in the VLC Plugin
     [ "`basename ${module}`" = "libmacosx_plugin.dylib" ] || \
         [ "`basename ${module}`" = "libmacosx_dialog_provider_plugin.dylib" ] || \
+        [ "`basename ${module}`" = "libvout_macosx_plugin.dylib" ] || \
         [ "`basename ${module}`" = "libgrowl_plugin.dylib" ] || \
             vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
 done

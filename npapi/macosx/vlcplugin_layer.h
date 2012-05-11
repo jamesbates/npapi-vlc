@@ -6,14 +6,24 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 
-@interface VlcPluginLayer : CAOpenGLLayer
 
-- (void)sayHi;
+typedef void (*callback_func_t)(void *);
+
+
+@interface VlcPluginLayer : CAOpenGLLayer
+{
+@private
+    CGLContextObj _lastKnownGLContext;
+    callback_func_t _callback_func;
+    void *_callback_args;
+    callback_func_t _callback_exit_func;
+}
+
+- (CGLContextObj)lastKnownGLContext;
+
+- (void)setupCallbackWithFunc:(callback_func_t)callback_func args:(void *)callback_args exitFunc:(callback_func_t)callback_exit_func;
 @end
 
-#else
-/* types referred to by manipulations functions below */
-//#include <CoreGraphics/CGGeometry.h>
 #endif
 
 
@@ -26,7 +36,6 @@ extern "C" {
 void *createVlcPluginLayer();
 void destroyVlcPluginLayer(void *vlcPluginLayer);
 void setVlcPluginLayerBounds(void *vlcPluginLayer, CGRect bounds);
-float getDoubleClickThreshold();
 
 #ifdef __cplusplus
 }
