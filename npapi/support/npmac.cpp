@@ -28,13 +28,13 @@
 
 #include <string.h>
 
-#include <Processes.h>
+/*#include <Processes.h>
 #include <Gestalt.h>
 #include <CodeFragments.h>
 #include <Timer.h>
 #include <Resources.h>
 #include <ToolUtils.h>
-
+*/
 #define XP_MACOSX 1
 #undef TARGET_RT_MAC_CFM
 

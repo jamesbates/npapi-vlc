@@ -56,28 +56,28 @@ VlcPluginMac::~VlcPluginMac()
 
 void VlcPluginMac::set_player_window()
 {
-	libvlc_media_player_set_nsobject(libvlc_media_player, vlcplugin_layer);
+	libvlc_media_player_set_nsobject(getMD(), vlcplugin_layer);
 }
 
 void VlcPluginMac::toggle_fullscreen()
 {
     if (!get_options().get_enable_fs()) return;
     if (playlist_isplaying())
-        libvlc_toggle_fullscreen(libvlc_media_player);
+        libvlc_toggle_fullscreen(getMD());
 }
 
 void VlcPluginMac::set_fullscreen(int yes)
 {
     if (!get_options().get_enable_fs()) return;
     if (playlist_isplaying())
-        libvlc_set_fullscreen(libvlc_media_player, yes);
+        libvlc_set_fullscreen(getMD(), yes);
 }
 
 int  VlcPluginMac::get_fullscreen()
 {
     int r = 0;
     if (playlist_isplaying())
-        r = libvlc_get_fullscreen(libvlc_media_player);
+        r = libvlc_get_fullscreen(getMD());
     return r;
 }
 

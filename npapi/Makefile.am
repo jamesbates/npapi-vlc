@@ -132,7 +132,7 @@ MOSTLYCLEANFILES += npvlc.rsrc
 CLEANFILES += VLC\ Plugin.plugin
 
 npvlc.rsrc: vlc.r
-	/Developer/Tools/Rez -useDF /Developer/Headers/FlatCarbon/Types.r $< -o $@
+	xcrun Rez -useDF /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/Developer/Headers/FlatCarbon/Types.r $< -o $@
 
 #
 # Plugin uses shared libraries that are located relatively through @executable_path,
