@@ -351,10 +351,7 @@ VlcPluginBase::VlcPluginBase( NPP instance, NPuint16_t mode ) :
     i_npmode(mode),
     b_stream(0),
     psz_target(NULL),
-    playlist_index(-1),
     libvlc_instance(NULL),
-    libvlc_media_list(NULL),
-    libvlc_media_player(NULL),
     p_scriptClass(NULL),
     p_browser(instance),
     psz_baseURL(NULL)
@@ -440,6 +437,8 @@ NPError VlcPluginBase::init(int argc, char* const argn[], char* const argv[])
     ppsz_argv[ppsz_argc++] = "--no-video-title-show";
     ppsz_argv[ppsz_argc++] = "--no-xlib";
 
+    bool b_autoloop = false;
+
     /* parse plugin arguments */
     for( int i = 0; (i < argc) && (ppsz_argc < 32); i++ )
     {
@@ -476,14 +475,7 @@ NPError VlcPluginBase::init(int argc, char* const argn[], char* const argv[])
         else if( !strcmp( argn[i], "loop")
               || !strcmp( argn[i], "autoloop") )
         {
-            if( boolValue(argv[i]) )
-            {
-                ppsz_argv[ppsz_argc++] = "--loop";
-            }
-            else
-            {
-                ppsz_argv[ppsz_argc++] = "--no-loop";
-            }
+            b_autoloop = boolValue(argv[i]);
         }
         else if( !strcmp( argn[i], "toolbar" ) )
         {
@@ -498,7 +490,11 @@ NPError VlcPluginBase::init(int argc, char* const argn[], char* const argv[])
     libvlc_instance = libvlc_new(ppsz_argc, ppsz_argv);
     if( !libvlc_instance )
         return NPERR_GENERIC_ERROR;
-    libvlc_media_list = libvlc_media_list_new(libvlc_instance);
+
+    vlc_player::open(libvlc_instance);
+
+    vlc_player::set_mode(b_autoloop ? libvlc_playback_mode_loop :
+                                      libvlc_playback_mode_default);
 
     /*
     ** fetch plugin base URL, which is the URL of the page containing the plugin
@@ -551,6 +547,13 @@ NPError VlcPluginBase::init(int argc, char* const argn[], char* const argv[])
     if( !events.init() )
         return NPERR_GENERIC_ERROR;
 
+    libvlc_media_player_t *p_md = getMD();
+    if( p_md ) {
+      libvlc_event_manager_t *p_em;
+      p_em = libvlc_media_player_event_manager( getMD() );
+      events.hook_manager( p_em, this );
+    }
+    
     return NPERR_NO_ERROR;
 }
 
@@ -559,15 +562,14 @@ VlcPluginBase::~VlcPluginBase()
     free(psz_baseURL);
     free(psz_target);
 
-    if( libvlc_media_player )
+    if( vlc_player::is_open() )
     {
+
         if( playlist_isplaying() )
             playlist_stop();
         events.unhook_manager( this );
-        libvlc_media_player_release( libvlc_media_player );
+        vlc_player::close();
     }
-    if( libvlc_media_list )
-        libvlc_media_list_release( libvlc_media_list );
     if( libvlc_instance )
         libvlc_release( libvlc_instance );
 
@@ -582,130 +584,11 @@ void VlcPluginBase::setWindow(const NPWindow &window)
 /*****************************************************************************
  * VlcPluginBase playlist replacement methods
  *****************************************************************************/
-int VlcPluginBase::playlist_add( const char *mrl )
-{
-    int item = -1;
-    libvlc_media_t *p_m = libvlc_media_new_location(libvlc_instance,mrl);
-    if( !p_m )
-        return -1;
-    assert( libvlc_media_list );
-    libvlc_media_list_lock(libvlc_media_list);
-    if( !libvlc_media_list_add_media(libvlc_media_list,p_m) )
-        item = libvlc_media_list_count(libvlc_media_list)-1;
-    libvlc_media_list_unlock(libvlc_media_list);
-
-    libvlc_media_release(p_m);
-
-    return item;
-}
-
-int VlcPluginBase::playlist_add_extended_untrusted( const char *mrl, const char *,
-                    int optc, const char **optv )
-{
-    libvlc_media_t *p_m;
-    int item = -1;
-
-    assert( libvlc_media_list );
-
-    p_m = libvlc_media_new_location(libvlc_instance, mrl);
-    if( !p_m )
-        return -1;
-
-    for( int i = 0; i < optc; ++i )
-        libvlc_media_add_option_flag(p_m, optv[i], libvlc_media_option_unique);
-
-    libvlc_media_list_lock(libvlc_media_list);
-    if( !libvlc_media_list_add_media(libvlc_media_list,p_m) )
-        item = libvlc_media_list_count(libvlc_media_list)-1;
-    libvlc_media_list_unlock(libvlc_media_list);
-    libvlc_media_release(p_m);
-
-    return item;
-}
-
-bool VlcPluginBase::playlist_select( int idx )
-{
-    libvlc_media_t *p_m = NULL;
-
-    assert( libvlc_media_list );
-
-    libvlc_media_list_lock(libvlc_media_list);
-
-    int count = libvlc_media_list_count(libvlc_media_list);
-    if( idx<0||idx>=count )
-        goto bad_unlock;
-
-    playlist_index = idx;
-
-    p_m = libvlc_media_list_item_at_index(libvlc_media_list,playlist_index);
-    libvlc_media_list_unlock(libvlc_media_list);
-
-    if( !p_m )
-        return false;
-
-    if( libvlc_media_player )
-    {
-        if( playlist_isplaying() )
-            playlist_stop();
-        events.unhook_manager( this );
-        on_media_player_release();
-        libvlc_media_player_release( libvlc_media_player );
-        libvlc_media_player = NULL;
-    }
-
-    libvlc_media_player = libvlc_media_player_new_from_media( p_m );
-    if( libvlc_media_player )
-    {
-        on_media_player_new();
-        set_player_window();
-
-        libvlc_event_manager_t *p_em;
-        p_em = libvlc_media_player_event_manager( libvlc_media_player );
-        events.hook_manager( p_em, this );
-    }
-
-    libvlc_media_release( p_m );
-    return true;
-
-bad_unlock:
-    libvlc_media_list_unlock( libvlc_media_list );
-    return false;
-}
-
-int VlcPluginBase::playlist_delete_item( int idx )
-{
-    if( !libvlc_media_list )
-        return -1;
-    libvlc_media_list_lock(libvlc_media_list);
-    int ret = libvlc_media_list_remove_index(libvlc_media_list,idx);
-    libvlc_media_list_unlock(libvlc_media_list);
-    return ret;
-}
-
-void VlcPluginBase::playlist_clear()
-{
-    if( libvlc_media_list )
-        libvlc_media_list_release(libvlc_media_list);
-    libvlc_media_list = libvlc_media_list_new(getVLC());
-}
-
-int VlcPluginBase::playlist_count()
-{
-    int items_count = 0;
-    if( !libvlc_media_list )
-        return items_count;
-    libvlc_media_list_lock(libvlc_media_list);
-    items_count = libvlc_media_list_count(libvlc_media_list);
-    libvlc_media_list_unlock(libvlc_media_list);
-    return items_count;
-}
-
-
 bool  VlcPluginBase::player_has_vout()
 {
     bool r = false;
     if( playlist_isplaying() )
-        r = libvlc_media_player_has_vout(libvlc_media_player);
+        r = libvlc_media_player_has_vout(get_player().get_mp())!=0;
     return r;
 }
 

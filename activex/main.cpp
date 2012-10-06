@@ -57,7 +57,7 @@ using namespace std;
 #define THREADING_MODEL "Apartment"
 #define MISC_STATUS     "131473"
 
-#define PROGID_STR TEXT(COMPANY_STR) TEXT(".") TEXT(PROGRAM_STR)
+#define PROGID_STR COMPANY_STR"."PROGRAM_STR
 
 #define GUID_STRLEN 39
 
@@ -174,7 +174,7 @@ STDAPI DllUnregisterServer(VOID)
         pcr->Release();
     }
 
-    SHDeleteKey(HKEY_CLASSES_ROOT, PROGID_STR);
+    SHDeleteKey(HKEY_CLASSES_ROOT, TEXT(PROGID_STR));
 
     UnregisterProgID(CLSID_VLCPlugin, 2);
     UnregisterProgID(CLSID_VLCPlugin2, 1);
@@ -188,7 +188,7 @@ static HRESULT RegisterClassID(HKEY hParent, REFCLSID rclsid, unsigned int versi
     _stprintf(progId, TEXT("%s.%u"), PROGID_STR, version);
 
     TCHAR description[sizeof(DESCRIPTION)+16];
-    _stprintf(description, TEXT("%s v%u"), TEXT(DESCRIPTION), version);
+    _stprintf(description, TEXT("%s v%u"), DESCRIPTION, version);
 
     HKEY hClassKey;
     {
@@ -211,7 +211,7 @@ static HRESULT RegisterClassID(HKEY hParent, REFCLSID rclsid, unsigned int versi
         }
         if( isDefault )
         {
-            hProgKey = keyCreate(HKEY_CLASSES_ROOT, PROGID_STR);
+            hProgKey = keyCreate(HKEY_CLASSES_ROOT, TEXT(PROGID_STR));
             if( NULL != hProgKey )
             {
                 // default key value
@@ -278,7 +278,7 @@ static HRESULT RegisterClassID(HKEY hParent, REFCLSID rclsid, unsigned int versi
         // VersionIndependentProgID key value
         keyClose(keySetDef(keyCreate(hClassKey,
                                      TEXT("VersionIndependentProgID")),
-                           PROGID_STR, sizeof(PROGID_STR)));
+                           TEXT(PROGID_STR), sizeof(TEXT(PROGID_STR))));
 
         // Version key value
         keyClose(keySetDef(keyCreate(hClassKey,TEXT("Version")),TEXT("1.0")));

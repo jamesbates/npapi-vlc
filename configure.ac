@@ -104,20 +104,18 @@ AM_CONDITIONAL(HAVE_WIN32, test "${SYS}" = "mingw32")
 
 dnl
 dnl Check widl/midl tools for win32
-WIDL="no"
-MIDL="no"
 AS_IF([test "${SYS}" = "mingw32"],[
     AC_CHECK_PROGS(MIDL, [midl], no)
-
-    dnl FIXME
-    dnl AC_CHECK_PROGS(WIDL, [widl], no)
-    dnl
+    AC_CHECK_PROGS(WIDL, [widl], no)
 
     AC_LANG_PUSH(C++)
     AC_CHECK_HEADER(ole2.h,,[AC_MSG_ERROR([required OLE header ole2.h is missing from your system])])
     AC_CHECK_HEADER(olectl.h,,[AC_MSG_ERROR([required OLE header olectl.h is missing from your system])])
     AC_CHECK_HEADERS(objsafe.h,,,[#include <ole2.h>])
     AC_LANG_POP(C++)
+],[
+    MIDL="no"
+    WIDL="no"
 ])
 
 AM_CONDITIONAL(HAS_MIDL_COMPILER, test "${MIDL}" != "no")

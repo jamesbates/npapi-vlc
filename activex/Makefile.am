@@ -77,6 +77,8 @@ axvlc_la_SOURCES = \
     ../common/win32_fullscreen.h \
     ../common/win32_vlcwnd.cpp \
     ../common/win32_vlcwnd.h \
+    ../common/vlc_player.cpp \
+    ../common/vlc_player.h
     $(NULL)
 
 axvlc_la_DEPENDENCIES = $(srcdir)/axvlc.def $(DATA_axvlc_rc)
@@ -107,8 +109,10 @@ clean-tlb:
 else
 if HAS_WIDL_COMPILER
 
+WINE_SDK_PATH ?= /usr/include/wine/windows
+
 axvlc.tlb axvlc_idl.c axvlc_idl.h: axvlc.idl
-	$(WIDL) -I$(WINE_SDK_PATH)/include -tuh -T axvlc.tlb -U axvlc_idl.c -H axvlc_idl.h axvlc.idl
+	$(WIDL) -I$(WINE_SDK_PATH) -tuh -T axvlc.tlb -U axvlc_idl.c -H axvlc_idl.h axvlc.idl
 
 clean-tlb:
 	rm -f axvlc.tlb axvlc_idl.c axvlc_idl.h

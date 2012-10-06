@@ -191,6 +191,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\common\vlc_player.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\npapi\vlcplugin_base.cpp"
 				>
 			</File>
@@ -226,6 +230,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\npapi\control\position.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\common\vlc_player.h"
 				>
 			</File>
 			<File

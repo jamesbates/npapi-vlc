@@ -44,14 +44,14 @@ void VlcPluginMac::set_player_window()
 
 void VlcPluginMac::toggle_fullscreen()
 {
-    if (!get_enable_fs()) return;
+    if (!get_options().get_enable_fs()) return;
     if (playlist_isplaying())
         libvlc_toggle_fullscreen(libvlc_media_player);
 }
 
 void VlcPluginMac::set_fullscreen(int yes)
 {
-    if (!get_enable_fs()) return;
+    if (!get_options().get_enable_fs()) return;
     if (playlist_isplaying())
         libvlc_set_fullscreen(libvlc_media_player, yes);
 }

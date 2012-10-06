@@ -60,9 +60,9 @@ VlcPluginGtk::~VlcPluginGtk()
 
 void VlcPluginGtk::set_player_window()
 {
-    libvlc_media_player_set_xwindow(libvlc_media_player,
+    libvlc_media_player_set_xwindow(get_player().get_mp(),
                                     video_xwindow);
-    libvlc_video_set_mouse_input(libvlc_media_player, 0);
+    libvlc_video_set_mouse_input(get_player().get_mp(), 0);
 }
 
 void VlcPluginGtk::toggle_fullscreen()
@@ -108,7 +108,7 @@ void VlcPluginGtk::do_set_fullscreen(bool yes)
 
 void VlcPluginGtk::set_fullscreen(int yes)
 {
-    if (!get_enable_fs()) return;
+    if (!get_options().get_enable_fs()) return;
     if (yes == is_fullscreen) return;
     if (yes) {
         gtk_widget_show(fullscreen_win);
@@ -217,7 +217,7 @@ void VlcPluginGtk::popup_menu()
     g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(menu_handler), this);
     gtk_menu_shell_append(GTK_MENU_SHELL(popupmenu), menuitem);
     /* set fullscreen */
-    if (get_enable_fs()) {
+    if (get_options().get_enable_fs()) {
         menuitem = gtk_image_menu_item_new_from_stock(
                                     GTK_STOCK_FULLSCREEN, NULL);
         g_signal_connect(G_OBJECT(menuitem), "activate", G_CALLBACK(menu_handler), this);
@@ -360,8 +360,8 @@ static void fullscreen_win_visibility_handler(GtkWidget *widget, gpointer user_d
 
 void VlcPluginGtk::update_controls()
 {
-    if (libvlc_media_player) {
-        libvlc_state_t state = libvlc_media_player_get_state(libvlc_media_player);
+    if (get_player().is_open()) {
+        libvlc_state_t state = libvlc_media_player_get_state(get_player().get_mp());
         bool is_stopped = (state == libvlc_Stopped) ||
                           (state == libvlc_Ended) ||
                           (state == libvlc_Error);
@@ -388,16 +388,16 @@ void VlcPluginGtk::update_controls()
         }
 
         /* toolbar sensitivity */
-        gtk_widget_set_sensitive(toolbar, libvlc_media_player != NULL);
+        gtk_widget_set_sensitive(toolbar, get_player().is_open() );
 
         /* time slider */
-        if (!libvlc_media_player ||
-                !libvlc_media_player_is_seekable(libvlc_media_player)) {
+        if (!get_player().is_open() ||
+                !libvlc_media_player_is_seekable(get_player().get_mp())) {
             gtk_widget_set_sensitive(time_slider, false);
             gtk_range_set_value(GTK_RANGE(time_slider), 0);
         } else {
             gtk_widget_set_sensitive(time_slider, true);
-            gdouble timepos = 100*libvlc_media_player_get_position(libvlc_media_player);
+            gdouble timepos = 100*libvlc_media_player_get_position(get_player().get_mp());
             if (time_slider_timeout_id == 0) {
                 /* only set the time if the user is not dragging the slider */
                 gtk_range_set_value(GTK_RANGE(time_slider), timepos);
@@ -414,7 +414,7 @@ bool VlcPluginGtk::create_windows()
 
     Window socket = (Window) npwindow.window;
     GdkColor color_bg;
-    gdk_color_parse(get_bg_color().c_str(), &color_bg);
+    gdk_color_parse(get_options().get_bg_color().c_str(), &color_bg);
 
     parent = gtk_plug_new(socket);
     gtk_widget_modify_bg(parent, GTK_STATE_NORMAL, &color_bg);

@@ -1,6 +1,8 @@
 Changes between VLC 2.0.0 and 2.0.2:
 -----------------------------------
  * introduce MediaDescription object for exposing media meta information
+ * Build and leaks fixes
+ * marquee text size fix
 
 
 Changes between VLC 1.1.4 and 2.0.0:
