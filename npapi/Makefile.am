@@ -101,8 +101,6 @@ else
 lib_LTLIBRARIES = npvlc.la
 
 AM_CPPFLAGS += -I. -I$(top_builddir) -c \
-	-F/System/Library/Frameworks/CoreFoundation.framework \
-	-I/Developer/Headers/FlatCarbon -fno-common -fpascal-strings \
 	-Wmost -Wno-four-char-constants -Wno-unknown-pragmas \
 	-DXP_UNIX -DXP_MACOSX=1 \
 	-DNO_X11=1 -DUSE_SYSTEM_CONSOLE=1 -pipe -fmessage-length=0
@@ -121,7 +119,7 @@ MOSTLYCLEANFILES += npvlc.rsrc
 CLEANFILES += VLC\ Plugin.plugin
 
 npvlc.rsrc: vlc.r
-	/Developer/Tools/Rez -useDF /Developer/Headers/FlatCarbon/Types.r $< -o $@
+	xcrun Rez -useDF /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.7.sdk/Developer/Headers/FlatCarbon/Types.r $< -o $@
 
 #
 # Plugin uses shared libraries that are located relatively through @executable_path,

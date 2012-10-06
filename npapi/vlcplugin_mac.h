@@ -29,7 +29,7 @@
 
 #include "vlcplugin_base.h"
 
-#include <Quickdraw.h>
+//#include <Quickdraw.h>
 
 class VlcPluginMac : public VlcPluginBase
 {

@@ -273,7 +273,8 @@ popd > /dev/null
 # Build the share folder
 if [ $PRODUCT != "VLC.app" ]; then
     echo "Building share folder..."
-    pbxcp="/Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -resolve-src-symlinks -v -V"
+    #pbxcp="/Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -resolve-src-symlinks -v -V"
+    pbxcp="cp -av" 
     mkdir -p ${target_share}
     if test "$use_archs" = "no"; then
         $pbxcp ${libvlc_dir}/share/vlc/lua ${target_share}
