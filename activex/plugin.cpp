@@ -94,6 +94,7 @@ static LRESULT CALLBACK VLCInPlaceClassWndProc(HWND hWnd, UINT uMsg, WPARAM wPar
 
 VLCPluginClass::VLCPluginClass(LONG *p_class_ref, HINSTANCE hInstance, REFCLSID rclsid) :
     _p_class_ref(p_class_ref),
+    _class_ref(0),
     _hinstance(hInstance),
     _classid(rclsid),
     _inplace_picture(NULL)
@@ -166,18 +167,19 @@ STDMETHODIMP VLCPluginClass::QueryInterface(REFIID riid, void **ppv)
 
 STDMETHODIMP_(ULONG) VLCPluginClass::AddRef(void)
 {
-    return InterlockedIncrement(_p_class_ref);
+    InterlockedIncrement(_p_class_ref);
+    return ++_class_ref;
 };
 
 STDMETHODIMP_(ULONG) VLCPluginClass::Release(void)
 {
-    ULONG refcount = InterlockedDecrement(_p_class_ref);
-    if( 0 == refcount )
+    InterlockedDecrement(_p_class_ref);
+    if( 0 == (--_class_ref) )
     {
         delete this;
         return 0;
     }
-    return refcount;
+    return _class_ref;
 };
 
 STDMETHODIMP VLCPluginClass::CreateInstance(LPUNKNOWN pUnkOuter, REFIID riid, void **ppv)
@@ -221,9 +223,6 @@ VLCPlugin::VLCPlugin(VLCPluginClass *p_class, LPUNKNOWN pUnkOuter) :
     _p_class(p_class),
     _i_ref(1UL),
     _p_libvlc(NULL),
-    _p_mlist(NULL),
-    _p_mplayer(NULL),
-    _i_midx(-1),
     _i_codepage(CP_ACP),
     _b_usermode(TRUE)
 {
@@ -285,6 +284,14 @@ VLCPlugin::VLCPlugin(VLCPluginClass *p_class, LPUNKNOWN pUnkOuter) :
 
 VLCPlugin::~VLCPlugin()
 {
+    if( vlc_player::is_open() )
+    {
+        if( isPlaying() )
+            playlist_stop();
+
+        player_unregister_events();
+    }
+
     delete vlcSupportErrorInfo;
     delete vlcOleObject;
     delete vlcDataObject;
@@ -307,16 +314,6 @@ VLCPlugin::~VLCPlugin()
     SysFreeString(_bstr_mrl);
     SysFreeString(_bstr_baseurl);
 
-    if( _p_mplayer )
-    {
-        if( isPlaying() )
-            playlist_stop();
-
-        player_unregister_events();
-        libvlc_media_player_release(_p_mplayer);
-        _p_mplayer=NULL;
-    }
-    if( _p_mlist )   { libvlc_media_list_release(_p_mlist); _p_mlist=NULL; }
     if( _p_libvlc )  { libvlc_release(_p_libvlc); _p_libvlc=NULL; }
 
     _p_class->Release();
@@ -404,7 +401,6 @@ HRESULT VLCPlugin::onInit(void)
         // initialize persistable properties
         set_autoplay(true);
         _b_autoloop   = FALSE;
-        set_show_toolbar(false);
         _bstr_baseurl = NULL;
         _bstr_mrl     = NULL;
         _b_visible    = TRUE;
@@ -527,16 +523,15 @@ void VLCPlugin::initVLC()
     ppsz_argv[ppsz_argc++] = "--intf=dummy";
     ppsz_argv[ppsz_argc++] = "--no-video-title-show";
 
-
-    // loop mode is a configuration option only
-    if( _b_autoloop )
-        ppsz_argv[ppsz_argc++] = "--loop";
-
     _p_libvlc = libvlc_new(ppsz_argc, ppsz_argv);
     if( !_p_libvlc )
         return;
 
-    _p_mlist = libvlc_media_list_new(_p_libvlc);
+    if( !vlc_player::open(_p_libvlc) )
+        return;
+
+    vlc_player::set_mode(_b_autoloop ? libvlc_playback_mode_loop :
+                                       libvlc_playback_mode_default);
 
     // initial playlist item
     if( SysStringLen(_bstr_mrl) > 0 )
@@ -582,6 +577,18 @@ void VLCPlugin::initVLC()
             CoTaskMemFree(psz_mrl);
         }
     }
+
+    if( !isInPlaceActive()  )
+    {
+        LPOLECLIENTSITE pClientSite;
+        if( SUCCEEDED(vlcOleObject->GetClientSite(&pClientSite)) && (NULL != pClientSite) )
+        {
+            vlcOleObject->DoVerb(OLEIVERB_INPLACEACTIVATE, NULL, pClientSite, 0, NULL, NULL);
+            pClientSite->Release();
+        }
+    }
+
+    set_player_window();
 };
 
 void VLCPlugin::setErrorInfo(REFIID riid, const char *description)
@@ -752,10 +759,9 @@ HRESULT VLCPlugin::onActivateInPlace(LPMSG, HWND hwndParent, LPCRECT lprcPosRect
         if( FAILED(result) )
             return result;
 
-        if( get_autoplay() && playlist_select(0) )
+        if( get_autoplay() )
         {
-            libvlc_media_player_play(_p_mplayer);
-            fireOnPlayEvent();
+            vlc_player::play(0);
         }
     }
 
@@ -844,9 +850,9 @@ void VLCPlugin::setTime(int seconds)
     if( seconds != _i_time )
     {
         setStartTime(_i_time);
-        if( NULL != _p_mplayer )
+        if( vlc_player::is_open() )
         {
-            libvlc_media_player_set_time(_p_mplayer, _i_time);
+            vlc_player::set_time(_i_time);
         }
     }
 };
@@ -1240,76 +1246,35 @@ static void handle_pausable_changed_event(const libvlc_event_t* event, void *par
 
 /* */
 
-bool VLCPlugin::playlist_select( int idx )
-{
-    //In some cases, libvlc may not have been initialized yet.
-    //So check it and initialize if needed (in getVLC())
-    libvlc_instance_t* p_libvlc;
-    HRESULT hr = getVLC(&p_libvlc);
-    if( FAILED(hr) || !p_libvlc)
-        return false;
-
-    if(!_p_mlist)
-        return false;//playlist does not exist, nothing to play...
-
-    libvlc_media_t *p_m = NULL;
-
-    assert(_p_mlist);
-
-    libvlc_media_list_lock(_p_mlist);
-
-    int count = libvlc_media_list_count(_p_mlist);
-
-    if( (idx < 0) || (idx >= count) )
-        goto bad_unlock;
-
-    _i_midx = idx;
-
-    p_m = libvlc_media_list_item_at_index(_p_mlist,_i_midx);
-    libvlc_media_list_unlock(_p_mlist);
-    if( !p_m )
-        return false;
-
-    if( _p_mplayer )
-    {
-        if( isPlaying() )
-            playlist_stop();
-        player_unregister_events();
-        _WindowsManager.LibVlcDetach();
-        libvlc_media_player_release( _p_mplayer );
-        _p_mplayer = NULL;
-    }
-
-    _p_mplayer = libvlc_media_player_new_from_media(p_m);
-    if( _p_mplayer )
-    {
-        // initial volume setting
-        libvlc_audio_set_volume(_p_mplayer, _i_volume);
-        if( _b_mute )
-            libvlc_audio_set_mute(_p_mplayer, TRUE);
-        set_player_window();
-        player_register_events();
-    }
-
-    libvlc_media_release(p_m);
-    return _p_mplayer ? true : false;
-
-bad_unlock:
-    libvlc_media_list_unlock(_p_mlist);
-    return false;
-}
-
 void VLCPlugin::set_player_window()
 {
-    _WindowsManager.LibVlcAttach(_p_mplayer);
+    _WindowsManager.LibVlcAttach( &get_player() );
+}
+
+void VLCPlugin::on_player_action(vlc_player_action_e pa)
+{
+    switch(pa){
+    case pa_play:
+        fireOnPlayEvent();
+        break;
+    case pa_pause:
+        fireOnPauseEvent();
+        break;
+    case pa_stop:
+        fireOnStopEvent();
+        break;
+    case pa_next:
+    case pa_prev:
+        break;
+    }
 }
 
 void VLCPlugin::player_register_events()
 {
     libvlc_event_manager_t *eventManager = NULL;
-    assert(_p_mplayer);
+    assert(vlc_player::is_open());
 
-    eventManager = libvlc_media_player_event_manager(_p_mplayer);
+    eventManager = libvlc_media_player_event_manager(vlc_player::get_mp());
     if(eventManager) {
         libvlc_event_attach(eventManager, libvlc_MediaPlayerNothingSpecial,
                             handle_input_state_event, this);
@@ -1346,9 +1311,9 @@ void VLCPlugin::player_register_events()
 void VLCPlugin::player_unregister_events()
 {
     libvlc_event_manager_t *eventManager = NULL;
-    assert(_p_mplayer);
+    assert(vlc_player::is_open());
 
-    eventManager = libvlc_media_player_event_manager(_p_mplayer);
+    eventManager = libvlc_media_player_event_manager(vlc_player::get_mp());
     if(eventManager) {
         libvlc_event_detach(eventManager, libvlc_MediaPlayerNothingSpecial,
                             handle_input_state_event, this);
@@ -1380,23 +1345,4 @@ void VLCPlugin::player_unregister_events()
         libvlc_event_detach(eventManager, libvlc_MediaPlayerPausableChanged,
                             handle_pausable_changed_event, this);
     }
-}
-
-int  VLCPlugin::playlist_add_extended_untrusted(const char *mrl, int optc, const char **optv)
-{
-    int item = -1;
-    libvlc_media_t *p_m = libvlc_media_new_location(_p_libvlc,mrl);
-    if( !p_m )
-        return -1;
-
-    for( int i = 0; i < optc; ++i )
-        libvlc_media_add_option_flag(p_m, optv[i], libvlc_media_option_unique);
-
-    libvlc_media_list_lock(_p_mlist);
-    if( libvlc_media_list_add_media(_p_mlist,p_m) == 0 )
-        item = libvlc_media_list_count(_p_mlist)-1;
-    libvlc_media_list_unlock(_p_mlist);
-    libvlc_media_release(p_m);
-
-    return item;
 }

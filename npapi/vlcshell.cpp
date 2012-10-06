@@ -352,9 +352,11 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
             p_plugin->setWindow(*window);
             p_plugin->create_windows();
             p_plugin->resize_windows();
+            p_plugin->set_player_window();
 
             /* now set plugin state to that requested in parameters */
-            p_plugin->set_toolbar_visible( p_plugin->get_show_toolbar() );
+            bool show_toolbar = p_plugin->get_options().get_show_toolbar();
+            p_plugin->set_toolbar_visible( show_toolbar );
 
             /* handle streams properly */
             if( !p_plugin->b_stream )
@@ -367,7 +369,7 @@ NPError NPP_SetWindow( NPP instance, NPWindow* window )
                     	 * so we'll always end up here, even if we're already playing. Therefore
                     	 * check that we aren't before auto-activating. This is harmless on other platforms.
                     	 */
-                        if( !p_plugin->playlist_isplaying() &&  p_plugin->get_autoplay() )
+                        if( !p_plugin->playlist_isplaying() &&  p_plugin->get_options().get_autoplay() )
                         {
                             p_plugin->playlist_play();
                         }
@@ -468,7 +470,7 @@ void NPP_StreamAsFile( NPP instance, NPStream *stream, const char* )
 
     if( p_plugin->playlist_add( stream->url ) != -1 )
     {
-        if( p_plugin->get_autoplay() )
+        if( p_plugin->get_options().get_autoplay() )
         {
             p_plugin->playlist_play();
         }

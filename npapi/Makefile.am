@@ -23,6 +23,8 @@ libvlcplugin_la_SOURCES = \
 	control/position.h \
 	support/classinfo.h \
 	../common/vlc_player_options.h \
+	../common/vlc_player.cpp \
+	../common/vlc_player.h \
 	$(SOURCES_support)
 
 EXTRA_libvlcplugin_la_SOURCES = \
@@ -61,6 +63,7 @@ AM_CPPFLAGS += $(XCB_CFLAGS)
 libvlcplugin_la_LIBADD += $(XCB_LIBS)
 SOURCES_support = \
 	support/npunix.cpp \
+	xembed.h \
 	vlcplugin_xcb.cpp \
 	vlcplugin_xcb.h
 endif # !USE_GTK

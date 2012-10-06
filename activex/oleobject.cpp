@@ -156,8 +156,8 @@ HRESULT VLCOleObject::doInPlaceActivate(LPMSG lpMsg, LPOLECLIENTSITE pActiveSite
         // check if not already activated
         if( ! _p_instance->isInPlaceActive() )
         {
-            if( ((NULL == p_inPlaceSite) || (S_OK == p_inPlaceSite->CanInPlaceActivate()))
-             && SUCCEEDED(_p_instance->onActivateInPlace(lpMsg, hwndParent, lprcPosRect, lprcClipRect)) )
+            if( p_inPlaceSite &&
+                SUCCEEDED(_p_instance->onActivateInPlace(lpMsg, hwndParent, lprcPosRect, lprcClipRect)) )
             {
                 if( p_inPlaceSiteEx )
                 {

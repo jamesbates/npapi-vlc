@@ -285,19 +285,17 @@ LRESULT VLCControlsWnd::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
                             WM().ToggleFullScreen();
                             break;
                         case ID_FS_PLAY_PAUSE:{
-                            libvlc_media_player_t* mp = MP();
-                            if( mp ){
+                            if( VP() ){
                                 if( IsPlaying() )
-                                    libvlc_media_player_pause(mp);
+                                    VP()->pause();
                                 else
-                                    libvlc_media_player_play(mp);
+                                    VP()->play();
                             }
                             break;
                         }
                         case ID_FS_MUTE:{
-                            libvlc_media_player_t* mp = MP();
-                            if( mp ){
-                                libvlc_audio_set_mute(mp, IsDlgButtonChecked(hWnd(), ID_FS_MUTE));
+                            if( VP() ){
+                                VP()->set_mute( IsDlgButtonChecked(hWnd(), ID_FS_MUTE) != FALSE );
                                 SyncVolumeSliderWithVLCVolume();
                             }
                             break;
@@ -397,8 +395,7 @@ LRESULT VLCControlsWnd::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         case WM_HSCROLL:
         case WM_VSCROLL: {
-            libvlc_media_player_t* mp = MP();
-            if( mp ){
+            if( VP() ){
                 if(hVolumeSlider==(HWND)lParam){
                     LRESULT SliderPos = SendMessage(hVolumeSlider, (UINT) TBM_GETPOS, 0, 0);
                     SetVLCVolumeBySliderPos(SliderPos);
@@ -475,18 +472,16 @@ void VLCControlsWnd::NeedHideControls()
 
 void VLCControlsWnd::SyncVideoPosScrollPosWithVideoPos()
 {
-    libvlc_media_player_t* mp = MP();
-    if( mp ){
-        libvlc_time_t pos = libvlc_media_player_get_time(mp);
+    if( VP() ){
+        libvlc_time_t pos = VP()->get_time();
         SetVideoPosScrollPosByVideoPos(pos);
     }
 }
 
 void VLCControlsWnd::SetVideoPosScrollRangeByVideoLen()
 {
-    libvlc_media_player_t* mp = MP();
-    if( mp ){
-        libvlc_time_t MaxLen = libvlc_media_player_get_length(mp);
+    if( VP() ){
+        libvlc_time_t MaxLen = VP()->get_length();
         VideoPosShiftBits = 0;
         while(MaxLen>0xffff){
             MaxLen >>= 1;
@@ -503,23 +498,23 @@ void VLCControlsWnd::SetVideoPosScrollPosByVideoPos(libvlc_time_t CurScrollPos)
 
 void VLCControlsWnd::SetVideoPos(float Pos) //0-start, 1-end
 {
-    libvlc_media_player_t* mp = MP();
-    if( mp ){
-        libvlc_media_player_set_time(mp, static_cast<libvlc_time_t>(libvlc_media_player_get_length(mp)*Pos));
+    if( VP() ){
+        vlc_player& vp = *VP();
+        vp.set_time( static_cast<libvlc_time_t>( vp.get_length()*Pos ) );
         SyncVideoPosScrollPosWithVideoPos();
     }
 }
 
 void VLCControlsWnd::SyncVolumeSliderWithVLCVolume()
 {
-    libvlc_media_player_t* mp = MP();
-    if( mp ){
-        int vol = libvlc_audio_get_volume(mp);
+    if( VP() ){
+        vlc_player& vp = *VP();
+        unsigned int vol = vp.get_volume();
         const LRESULT SliderPos = SendMessage(hVolumeSlider, (UINT) TBM_GETPOS, 0, 0);
         if(SliderPos!=vol)
             SendMessage(hVolumeSlider, (UINT) TBM_SETPOS, (WPARAM) TRUE, (LPARAM) vol);
 
-        bool muted = libvlc_audio_get_mute(mp)!=0;
+        bool muted = vp.is_muted();
         int MuteButtonState = SendMessage(hMuteButton, (UINT) BM_GETCHECK, 0, 0);
         if((muted&&(BST_UNCHECKED==MuteButtonState))||(!muted&&(BST_CHECKED==MuteButtonState))){
             SendMessage(hMuteButton, BM_SETCHECK, (WPARAM)(muted?BST_CHECKED:BST_UNCHECKED), 0);
@@ -537,11 +532,11 @@ void VLCControlsWnd::SyncVolumeSliderWithVLCVolume()
 
 void VLCControlsWnd::SetVLCVolumeBySliderPos(int CurPos)
 {
-    libvlc_media_player_t* mp = MP();
-    if( mp ){
-        libvlc_audio_set_volume(mp, CurPos);
+    if( VP() ){
+        vlc_player& vp = *VP();
+        vp.set_volume(CurPos);
         if(0==CurPos){
-            libvlc_audio_set_mute(mp, IsDlgButtonChecked( hWnd(), ID_FS_MUTE) );
+            vp.set_mute( IsDlgButtonChecked( hWnd(), ID_FS_MUTE) != FALSE );
         }
         SyncVolumeSliderWithVLCVolume();
     }
@@ -808,14 +803,14 @@ void VLCHolderWnd::OnLibVlcEvent(const libvlc_event_t* event)
 
 void VLCHolderWnd::LibVlcAttach()
 {
-    libvlc_media_player_set_hwnd(MP(), hWnd());
+    if( VP() )
+        libvlc_media_player_set_hwnd( VP()->get_mp(), hWnd() );
 }
 
 void VLCHolderWnd::LibVlcDetach()
 {
-    libvlc_media_player_t* p_md = MP();
-    if(p_md)
-        libvlc_media_player_set_hwnd(p_md, 0);
+    if( VP() )
+        libvlc_media_player_set_hwnd( VP()->get_mp(), 0);
 
     MouseHook(false);
 }
@@ -931,7 +926,7 @@ VLCFullScreenWnd* VLCFullScreenWnd::CreateFSWindow(VLCWindowsManager* WM)
 ///////////////////////
 VLCWindowsManager::VLCWindowsManager(HMODULE hModule, const VLCViewResources& rc,
                                      const vlc_player_options* po)
-    :_rc(rc), _hModule(hModule), _po(po), _hWindowedParentWnd(0), _p_md(0),
+    :_rc(rc), _hModule(hModule), _po(po), _hWindowedParentWnd(0), _vp(0),
     _HolderWnd(0), _FSWnd(0), _b_new_messages_flag(false), Last_WM_MOUSEMOVE_Pos(0)
 {
     VLCFullScreenWnd::RegisterWndClassName(hModule);
@@ -967,17 +962,17 @@ void VLCWindowsManager::DestroyWindows()
     _FSWnd = 0;
 }
 
-void VLCWindowsManager::LibVlcAttach(libvlc_media_player_t* p_md)
+void VLCWindowsManager::LibVlcAttach(vlc_player* vp)
 {
     if(!_HolderWnd)
         return;//VLCWindowsManager::CreateWindows was not called
 
-    if(_p_md && _p_md != p_md){
+    if( vp && _vp != vp ){
         LibVlcDetach();
     }
 
-    if(!_p_md){
-        _p_md = p_md;
+    if( !_vp ){
+        _vp = vp;
         VlcEvents(true);
     }
 
@@ -989,9 +984,9 @@ void VLCWindowsManager::LibVlcDetach()
     if(_HolderWnd)
         _HolderWnd->LibVlcDetach();
 
-    if(_p_md){
+    if(_vp){
         VlcEvents(false);
-        _p_md = 0;
+        _vp = 0;
     }
 }
 
@@ -1000,8 +995,8 @@ void VLCWindowsManager::StartFullScreen()
     if( !_HolderWnd || ( PO() && !PO()->get_enable_fs() ) )
         return;//VLCWindowsManager::CreateWindows was not called
 
-    if(getMD()&&!IsFullScreen()){
-        if(!_FSWnd){
+    if( VP() && !IsFullScreen() ){
+        if( !_FSWnd ){
             _FSWnd= VLCFullScreenWnd::CreateFSWindow(this);
         }
 
@@ -1095,12 +1090,13 @@ void VLCWindowsManager::OnLibVlcEvent_proxy(const libvlc_event_t* event, void *p
 
 void VLCWindowsManager::VlcEvents(bool Attach)
 {
-    libvlc_media_player_t* p_md = getMD();
-    if( !p_md )
+    if( !VP() )
         return;
 
+    vlc_player& vp = *VP();
+
     libvlc_event_manager_t* em =
-        libvlc_media_player_event_manager(p_md);
+        libvlc_media_player_event_manager( vp.get_mp() );
     if(!em)
         return;
 
