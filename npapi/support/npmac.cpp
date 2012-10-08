@@ -27,14 +27,7 @@
 #include "config.h"
 
 #include <string.h>
-/*
-#include <Processes.h>
-#include <Gestalt.h>
-#include <CodeFragments.h>
-#include <Timer.h>
-#include <Resources.h>
-#include <ToolUtils.h>
-*/
+#include <stddef.h>
 #define XP_MACOSX 1
 #undef TARGET_RT_MAC_CFM
 
@@ -1162,14 +1155,13 @@ NPError NP_Initialize(NPNetscapeFuncs* nsTable)
     }
 
 
-    // This check is too simplisitic: some browsers (e.g. Safari) update the NPAPI less frequently, and so
-    // provide a table containing all netspace functions we are interested, but not necessarily all defined
-    // in the newest version of the npapi against which this plugin is compiled.
-    /*if (nsTable->size < sizeof(NPNetscapeFuncs)) {
+    // We use all functions of the nsTable up to and including setexception. We therefore check that
+    // reaches at least till that function.
+    if (nsTable->size < (offsetof(NPNetscapeFuncs, setexception) + sizeof(NPN_SetExceptionProcPtr))) {
 
     	PLUGINDEBUGSTR("\pNP_Initialize error: NPERR_INVALID_FUNCTABLE_ERROR: table too small");
         return NPERR_INVALID_FUNCTABLE_ERROR;
-    }*/
+    }
 
     int navMinorVers = nsTable->version & 0xFF;
 

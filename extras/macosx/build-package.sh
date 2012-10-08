@@ -1,17 +1,16 @@
 #!/bin/sh
 #
-# Pre-Compile.sh
+# build-package.sh
 #
-# Script that install libvlc and its modules inside VLCKit.
+# Script that installs libvlc and modules to the VLC Plugin.plugin
 #
-# This is for some creepy reasons also used by legacy VLC.app or
-# the moz plugin.
+# This script is adapted from the build-package.sh script found in the vlc project
+# at extras/package/macosx/build-package.sh
 
-#
 # We are building VLC.app or the moz plugin
 #
 if test "${ACTION}" = "release-makefile"; then
-    echo "running Pre-Compile.sh in release-makefile mode"
+    echo "running build-package.sh in release-makefile mode"
 
     FULL_PRODUCT_NAME="${PRODUCT}"
     if [ "$FULL_PRODUCT_NAME" = "VLC-Plugin.plugin" ] ; then
@@ -249,14 +248,11 @@ else
 fi
 
 ##########################
-# Build the plugins folder (Same as VLCKit.framework/plugins in Makefile)
+# Build the plugins folder
 echo "Building plugins folder..."
 # Figure out what plugins are available to install
 for module in `find ${libvlc_dir}/lib/vlc/plugins -name 'lib*_plugin.dylib' -print` ; do
-    # Check to see that the reported module actually exists
-    #if test -f ${module}; then
-        vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
-    #fi
+    vlc_install `dirname ${module}` `basename ${module}` ${target_plugins} "module"
 done
 
 ##########################
@@ -273,7 +269,6 @@ popd > /dev/null
 # Build the share folder
 if [ $PRODUCT != "VLC.app" ]; then
     echo "Building share folder..."
-    #pbxcp="/Developer/Library/PrivateFrameworks/DevToolsCore.framework/Resources/pbxcp -exclude .DS_Store -resolve-src-symlinks -v -V"
     pbxcp="cp -av" 
     mkdir -p ${target_share}
     if test "$use_archs" = "no"; then

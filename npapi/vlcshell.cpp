@@ -138,7 +138,8 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
         return false;
     }
 
-#if 0
+// FIXME: implement Cocoa event model, by porting this legacy code:
+/*
     EventRecord *myEvent = (EventRecord*)event;
 
     switch( myEvent->what )
@@ -149,7 +150,7 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
         {
             if( (myEvent->when - lastMouseUp) < GetDblTime() )
             {
-                /* double click */
+                // double click
                 p_plugin->toggle_fullscreen();
             }
             return true;
@@ -188,12 +189,12 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
 
                 if( ! hasVout )
                 {
-                    /* draw the text from get_bg_text() */
+                    // draw the text from get_bg_text()
                     ForeColor(blackColor);
                     PenMode( patCopy );
 
-                    /* seems that firefox forgets to set the following
-                     * on occasion (reload) */
+                    // seems that firefox forgets to set the following
+                    // on occasion (reload)
                     SetOrigin(((NP_Port *)npwindow.window)->portx,
                               ((NP_Port *)npwindow.window)->porty);
 
@@ -230,9 +231,7 @@ int16_t NPP_HandleEvent( NPP instance, void * event )
         default:
             ;
     }
-#else // __x86_64__
-// TODO: implement Cocoa event model
-#endif
+*/
     return false;
 }
 #endif /* XP_MACOSX */
